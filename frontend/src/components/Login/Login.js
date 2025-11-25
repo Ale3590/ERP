@@ -3,8 +3,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
-// 🔥 Aquí tomamos la variable del entorno de Vercel
+// ===========================================
+// CONFIG: variable del backend desde Vercel
+// ===========================================
 const API = process.env.REACT_APP_API_URL;
+
+// Log para verificar que Vercel sí envió la variable:
+console.log("🚀 REACT_APP_API_URL =", API);
+
+if (!API) {
+  console.error(
+    "❌ ERROR: La variable REACT_APP_API_URL está undefined. " +
+      "Configúrala en Vercel → Project Settings → Environment Variables"
+  );
+}
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -16,42 +28,55 @@ const Login = () => {
 
   const getToken = () => localStorage.getItem("token");
 
+  // =====================================
   // Verifica si ya hay sesión activa
+  // =====================================
   useEffect(() => {
     const checkAuth = async () => {
       const token = getToken();
-      if (token) {
-        try {
-          const response = await fetch(`${API}/api/auth/verify`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
+      if (!token || !API) return;
 
-          if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem("user", JSON.stringify(data.user));
-            navigate("/dashboard");
-          } else {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-          }
-        } catch {
+      try {
+        const response = await fetch(`${API}/api/auth/verify`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem("user", JSON.stringify(data.user));
+          navigate("/dashboard");
+        } else {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
         }
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
       }
     };
 
     checkAuth();
   }, [navigate]);
 
+  // =====================================
+  // LOGIN
+  // =====================================
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    if (!API) {
+      setError(
+        "❌ Error: el frontend no tiene configurada la variable REACT_APP_API_URL en Vercel."
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${API}/api/auth/login`, {
@@ -69,16 +94,16 @@ const Login = () => {
         navigate("/dashboard");
       } else {
         if (response.status === 401)
-          setError("Credenciales inválidas: Username o password incorrecto");
+          setError("Credenciales inválidas: Usuario o contraseña incorrectos");
         else if (response.status === 500)
-          setError("Error en el servidor. Verifica que el backend esté en Render.");
+          setError("Error en el servidor. Verifica que el backend en Render funcione.");
         else setError(data.message || "Error en el login");
 
         localStorage.removeItem("token");
         localStorage.removeItem("user");
       }
     } catch {
-      setError("Error de conexión: No se pudo conectar con el servidor.");
+      setError("❌ Error de conexión: No se pudo conectar con el servidor.");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     } finally {
