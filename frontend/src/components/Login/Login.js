@@ -6,7 +6,8 @@ import "./Login.css";
 // ===========================================
 // CONFIG: variable del backend desde Vercel
 // ===========================================
-const API = process.env.REACT_APP_API_URL;
+const API = import.meta.env.VITE_API_URL;
+
 
 // Log para verificar que Vercel sí envió la variable:
 console.log("🚀 REACT_APP_API_URL =", API);
